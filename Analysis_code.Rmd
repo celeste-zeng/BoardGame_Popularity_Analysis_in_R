@@ -1,0 +1,359 @@
+---
+title: "Board_game_popularity_analysis_project"
+author: "Simona Liao, Celeste Zeng"
+date: "2020/1/22"
+output: html_document
+---
+
+<!--- Begin styling code. --->
+<style type="text/css">
+/* Whole document: */
+body{
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-size: 12pt;
+}
+h1.title {
+  font-size: 38px;
+  text-align: center;
+}
+h4.author {
+  font-size: 18px;
+  text-align: center;
+}
+h4.date {
+  font-size: 18px;
+  text-align: center;
+}
+</style>
+<!--- End styling code. --->
+
+# The Current Trending of Board Games
+## I. The board games' development across years
+
+Nowadays, with more and more new types of entertainment emerges, such as video games and social media, the classic board games seem to be outdated. Is it the truth? The statistics tell another story.
+```{r, echo = FALSE, include = FALSE}
+library(tidyverse)
+boardGame <- read_csv("https://raw.githubusercontent.com/bryandmartin/STAT302/master/docs/Projects/project1/board_game_raw.csv")
+#write_csv(boardGame, path = "./data/boardGame.csv")
+```
+
+```{r, echo = FALSE, include = FALSE}
+# filters the data published after 1950 and and has number of ratings less than 25
+boardGame <- boardGame %>%
+  filter(yearpublished >= 1950 & users_rated >= 25)
+```
+According to the histogram below, the number of board games has been constantly growing and achieve a peak around 2010 - 2015. 
+
+```{r, echo = FALSE, message = FALSE}
+# plots the counts of board games published across years
+ggplot(data = boardGame,
+       aes(x = yearpublished)) +
+  geom_histogram(color = "black", fill = "pink") +
+  theme_bw(base_size = 16) +
+  labs(title = "Number of Board Games Published Over Years",
+       x = "Publish Year",
+       y = "Counts") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+Similarly, in the graph below, the rating of board games slowly grows from 1950 to 2000 and increases more obviously starting from 2000. 
+
+```{r, echo = FALSE, message = FALSE}
+# plots the relationship between average rating and published year
+ggplot(data = boardGame,
+       aes(x = yearpublished, y = average_rating)) +
+  geom_point(size = 0.5, color = "orange") +
+  geom_smooth(size = 1.5)+
+  theme_bw(base_size = 16) +
+  labs(title = "Average Ratings Over Years",
+       x = "Publish Year",
+       y = "Rating") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+Board games also change according to the change of decades. In the graph about publish year and average playing time below, we can find that around 1980s, board games tend to have longer playing time. This trend decreases in recent years and board games published after 2000 have an average playing time shorter than 100 minutes.
+
+```{r, echo = FALSE}
+# filters the data with mean playing time over 400 minutes and groups them by published year
+boardGame_05 <- boardGame %>%
+  group_by(yearpublished) %>%
+  summarize(mean_playtime = mean(playingtime)) %>%
+  filter(mean_playtime < 400)
+```
+
+```{r, echo = FALSE, message = FALSE}
+# plots the relationship between average playing time and published year
+playtime_plot <- ggplot(data = boardGame_05,
+       aes(x = yearpublished, y = mean_playtime)) +
+  geom_line(size = 1, color = "purple") +
+  geom_smooth(size = 2, color = "yellow", se = FALSE)+
+  theme_bw(base_size = 16) +
+  labs(title = "Average Playing Time Over Years",
+       x = "Publish Year",
+       y = "Average Playing Time (min)") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+playtime_plot
+```
+
+## II. Popularity of Board Games
+
+What keeps board games so popular over the years and what kinds of board games do people like most? This report will discuss the popularity of board games from four perspectives: the mechanics used in the game, the game category, the game complexity, and the number of players in the game.
+
+First, it is a bar chart showing that what are the top 100 most complex games’ mechanics and their corresponding counts. The chart only includes data of games which are rated by over 2000 users to avoid biased high complexity rating coming from small sample size. The graph only shows the mechanics whose counts are greater than 6 since counts that are smaller than or equal to 6 are trivial while having 100 games. Nonetheless, this graph does not illustrate relative complexity: although the count of dice rolling games is greater than that of trading games, it does not mean that dice rolling games are more difficult to play. Instead, the graph shows what are the most common mechanics to which the top 100 most complex games belong to. Therefore, among the top 100 most complex games, their most common mechanics are dice rolling, variable player powers, and hand management. 
+
+```{r, echo = FALSE}
+library(splitstackshape)
+# filter the data to only consider games which were
+# rated by over 2000 users
+temp1 <- filter(boardGame,users_rated >= 2000)
+# rearrange the data so that we get the games with top 100
+# highest compexity rating
+temp1 <- arrange(temp1, desc(average_complexity))
+temp1 <- temp1[1 : 100,]
+# split the mechanic coloum in "long direction"
+# so we can include all mechanies of each game in the graph
+temp1 <- cSplit(temp1, "mechanic", direction = "long")
+# only the mechanics whose counts are > 6 can appear in the graph
+temp3 <- count(temp1, mechanic, sort = T) %>%
+          rename(count = n) %>%
+          filter(count > 6)
+# draw a bar chart to show what top 100 most complex games' mechanics are
+mechanic_count_plot <- ggplot(temp3, aes(x = reorder(mechanic, -count), y = count)) + 
+                        geom_bar(width = 1, color = "black", fill = "lightblue", stat = "identity") + 
+                        labs(title = "Top 100 Most Complex Games' Mechanics", 
+                             x = "Types of Mechanics", y = "Count")  +
+                        theme_bw(base_size = 14) + 
+                        theme(plot.margin = unit(c(1, 1, 1, 2), "cm"),
+                              plot.title = element_text(hjust = 0.5, face = "bold"),
+                              axis.text.x = element_text(angle = 40, hjust = 1, vjust = 1.02, face = "bold")) + 
+                        ylim(c(0 , 50))
+mechanic_count_plot
+```
+
+Second, it is a bar chart showing what are the top 100 most popular games’ categories and their corresponding counts. The chart only includes data of games which are rated by over 2000 users to avoid biased high rating coming from small sample size. The graph only shows the categories whose counts are greater than 6 since counts that are smaller than or equal to 6 are trivial while having 100 games. However, the graph does not demonstrate relative popularity: although the count of economic games is greater than that of dice games, it does not mean that economic games are more popular. Instead, the graph shows what are the most common categories to which the top 100 most popular games belong to. Therefore, among the top 100 most popular games, their most common categories are expansion for base-game, economic games, as well as science fiction games. 
+
+```{r, echo = FALSE}
+# filter the data to only consider games which were
+# rated by over 2000 users
+temp2 <- filter(boardGame,users_rated >= 2000, yearpublished >= 2000)
+# rearrange and filter the data so that we get the games with top 100
+# highest rating
+temp2 <- arrange(temp2, desc(average_rating))
+temp2 <- temp2[1 : 100,]
+# split the category coloum in "long direction"
+# so we can include all categories of each game in the graph
+temp2 <- cSplit(temp2, "category", direction = "long")
+# only the categories whose counts are > 6 can appear in the graph
+temp4 <- count(temp2, category, sort = T) %>%
+          rename(count = n) %>%
+          filter(count > 6)
+# draw a bar chart to show what top 100 most popular games' categories are
+cate_count_plot <- ggplot(temp4, aes(x = reorder(category, -count), y = count)) + 
+                       geom_bar(width = 1, color = "black", fill = "lightgreen", stat = "identity") + 
+                       labs(title = "Top 100 Most Popular Games' Categories 
+                            in the 21st Century", 
+                            x = "Categories", y = "Count")  +
+                       theme_bw(base_size = 14) + 
+                       theme(plot.margin = unit(c(1, 2.2, 1, 2.3), "cm"),
+                             plot.title = element_text(hjust = 0.5, face = "bold"),
+                             axis.text.x = element_text(angle = 40, hjust = 1, vjust = 1.02, face = "bold")) + 
+                       ylim(c(0 , 40))
+cate_count_plot
+```
+
+Third, based on the graph below, ratings increase and the range of ratings also decreases while the game complexity increase. Thus, ratings correlate with the game complexity positively, meaning that people tend to prefer more complicated board games. (Data with 0 game complexity are excluded.)
+
+```{r, echo = FALSE, message = FALSE}
+# plot the relationship between average rating and game complexity
+boardGame_01 <- boardGame %>%
+  filter(average_complexity > 0)
+ggplot(data = boardGame_01,
+       aes(x = average_complexity, y = average_rating)) +
+  geom_line(size = 0.5, color = "lightgreen") +
+  geom_smooth(size = 1.5) +
+  theme_bw(base_size = 16) +
+  labs(title = "Average Ratings for Different Game Complexity",
+       x = "Game Complexity",
+       y = "Average Rating") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+Lastly, the first boxplot depicts the relationship between ratings and the number of maximum players in board games and the second depicts the relationship between ratings and the number of minimum players. There isn’t a clear relationship between the ratings and the number of players based on boxplots, meaning that people may don’t have a preference over games with fewer participants or more participants. (These boxplots only includes data with max player and min players more than 0 people and less than 10 people to avoid the influence of extreme values.)
+
+```{r, echo = FALSE}
+# plots the relationship between average rating and maximum / minimum number of players
+boardGame_02 <- boardGame %>%
+  filter(maxplayers < 10 & maxplayers > 0)
+ggplot(data = boardGame_02,
+       aes(x = maxplayers, y = average_rating, group = maxplayers)) +
+  geom_boxplot(fill = "lightblue") +
+  theme_bw(base_size = 16) +
+  labs(title = "Average Ratings of Games with 
+       Different Maximum Number of Players",
+       x = "Maximum Number of Players",
+       y = "Average Rating") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+boardGame_03 <- boardGame %>%
+  filter(minplayers < 10 & minplayers > 0)
+ggplot(data = boardGame_03,
+       aes(x = minplayers, y = average_rating, group = minplayers)) +
+  geom_boxplot(fill = "lightblue") +
+  theme_bw(base_size = 16) +
+  labs(title = "Average Ratings of Games with
+       Different Minimum Number of Players",
+       x = "Minimum Number of Players",
+       y = "Average Rating") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+## III. Conclusion
+
+After completing this project we have the following discoveries. 
+
+For the board games' development and changes across the years, 1) There are more and more board games being published from 1950 to now, and the count of games reaches its peak between 2010-2015; 2) Over the years, the games which were published later had better ratings, so it is reasonable to conclude that game companies are doing a good job to make their games better; 3) Board games tend to have longer playing time around 1980s and the playing time kept decreasing after 1980s. 
+
+For the factors that might influence the popularity of board games: 1) The majority of the most complex games have the following mechanics in common: dice rolling, variable player powers, and hand management; 2) The majority of the most popular games belong to the following categories: expansion for base-game, economic games, as well as science fiction games; 3) Games with higher complexity are more likely to receive higher ratings; 4) The numbers of minimum and maximum players of a game may not affect its rating. 
+
+(All the graphs above only concludes data of board games which are published after 1950 and have more than 25 ratings.)
+
+
+## Code Appendix
+
+```{r, eval = FALSE}
+library(tidyverse)
+boardGame <- read_csv("https://raw.githubusercontent.com/bryandmartin/STAT302/master/docs/Projects/project1/board_game_raw.csv")
+write_csv(boardGame, path = "./data/boardGame.csv")
+
+# filters the data published after 1950 and and has number of ratings less than 25
+boardGame <- boardGame %>%
+  filter(yearpublished >= 1950 & users_rated >= 25)
+
+# plots the counts of board games published across years
+ggplot(data = boardGame,
+       aes(x = yearpublished)) +
+  geom_histogram(color = "black", fill = "pink") +
+  theme_bw(base_size = 16) +
+  labs(title = "Number of Board Games Published Over the Years",
+       x = "Publish Year",
+       y = "Counts") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# plots the relationship between average rating and published year
+ggplot(data = boardGame,
+       aes(x = yearpublished, y = average_rating)) +
+  geom_point(size = 0.5, color = "orange") +
+  geom_smooth(size = 1.5)+
+  theme_bw(base_size = 16) +
+  labs(title = "Average Ratings Over the Years",
+       x = "Publish Year",
+       y = "Rating") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# filters the data with mean playing time over 400 minutes and groups them by published year
+boardGame_05 <- boardGame %>%
+  group_by(yearpublished) %>%
+  summarize(mean_playtime = mean(playingtime)) %>%
+  filter(mean_playtime < 400)
+
+# plots the relationship between average playing time and published year
+playtime_plot <- ggplot(data = boardGame_05,
+       aes(x = yearpublished, y = mean_playtime)) +
+  geom_line(size = 1, color = "purple") +
+  geom_smooth(size = 2, color = "yellow", se = FALSE)+
+  theme_bw(base_size = 16) +
+  labs(title = "Average Playing Time Over the Years",
+       x = "Publish Year",
+       y = "Average Playing Time (min)") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+library(splitstackshape)
+# filter the data to only consider games which were
+# rated by over 2000 users
+temp1 <- filter(boardGame,users_rated >= 2000)
+# rearrange the data so that we get the games with top 100
+# highest compexity rating
+temp1 <- arrange(temp1, desc(average_complexity))
+temp1 <- temp1[1 : 100,]
+# split the mechanic coloum in "long direction"
+# so we can include all mechanies of each game in the graph
+temp1 <- cSplit(temp1, "mechanic", direction = "long")
+# only the mechanics whose counts are > 6 can appear in the graph
+temp3 <- count(temp1, mechanic, sort = T) %>%
+          rename(count = n) %>%
+          filter(count > 6)
+# draw a bar chart to show what top 100 most complex games' mechanics are
+mechanic_count_plot <- ggplot(temp3, aes(x = reorder(mechanic, -count), y = count)) + 
+                        geom_bar(width = 1, color = "black", fill = "lightblue", stat = "identity") + 
+                        labs(title = "Top 100 Most Complex Games' Mechanics", 
+                             x = "Types of Mechanics", y = "Count")  +
+                        theme_bw(base_size = 14) + 
+                        theme(plot.margin = unit(c(1, 1, 1, 2), "cm"),
+                              plot.title = element_text(hjust = 0.5, face = "bold"),
+                              axis.text.x = element_text(angle = 40, hjust = 1, vjust = 1.02, face = "bold")) + 
+                        ylim(c(0 , 50))
+
+# filter the data to only consider games which were
+# rated by over 2000 users
+temp2 <- filter(boardGame,users_rated >= 2000, yearpublished >= 2000)
+# rearrange and filter the data so that we get the games with top 100
+# highest rating
+temp2 <- arrange(temp2, desc(average_rating))
+temp2 <- temp2[1 : 100,]
+# split the category coloum in "long direction"
+# so we can include all categories of each game in the graph
+temp2 <- cSplit(temp2, "category", direction = "long")
+# only the categories whose counts are > 6 can appear in the graph
+temp4 <- count(temp2, category, sort = T) %>%
+          rename(count = n) %>%
+          filter(count > 6)
+# draw a bar chart to show what top 100 most popular games' categories are
+cate_count_plot <- ggplot(temp4, aes(x = reorder(category, -count), y = count)) + 
+                       geom_bar(width = 1, color = "black", fill = "lightgreen", stat = "identity") + 
+                       labs(title = "Top 100 Most Popular Games' Categories 
+                            in the 21st Century", 
+                            x = "Categories", y = "Count")  +
+                       theme_bw(base_size = 14) + 
+                       theme(plot.margin = unit(c(1, 2.2, 1, 2.3), "cm"),
+                             plot.title = element_text(hjust = 0.5, face = "bold"),
+                             axis.text.x = element_text(angle = 40, hjust = 1, vjust = 1.02, face = "bold")) + 
+                       ylim(c(0 , 40))
+
+# plot the relationship between average rating and game complexity
+boardGame_01 <- boardGame %>%
+  filter(average_complexity > 0)
+ggplot(data = boardGame_01,
+       aes(x = average_complexity, y = average_rating)) +
+  geom_line(size = 0.5, color = "lightgreen") +
+  geom_smooth(size = 1.5) +
+  theme_bw(base_size = 16) +
+  labs(title = "Average Ratings for Different Game Complexity",
+       x = "Game Complexity",
+       y = "Average Rating") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# plots the relationship between average rating and maximum / minimum number of players
+boardGame_02 <- boardGame %>%
+  filter(maxplayers < 10 & maxplayers > 0)
+ggplot(data = boardGame_02,
+       aes(x = maxplayers, y = average_rating, group = maxplayers)) +
+  geom_boxplot(fill = "lightblue") +
+  theme_bw(base_size = 16) +
+  labs(title = "Average Ratings of Games with 
+       Different Maximum Number of Players",
+       x = "Maximum Number of Players",
+       y = "Average Rating") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+boardGame_03 <- boardGame %>%
+  filter(minplayers < 10 & minplayers > 0)
+ggplot(data = boardGame_03,
+       aes(x = minplayers, y = average_rating, group = minplayers)) +
+  geom_boxplot(fill = "lightblue") +
+  theme_bw(base_size = 16) +
+  labs(title = "Average Ratings of Games with
+       Different Minimum Number of Players",
+       x = "Minimum Number of Players",
+       y = "Average Rating") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```

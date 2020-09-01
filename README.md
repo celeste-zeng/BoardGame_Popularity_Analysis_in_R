@@ -1,0 +1,2 @@
+# Board_Game_Popularity_Analysis
+Nowadays, with more and more new types of entertainment emerges, such as video games and social media, the classic board games seem to be outdated. Is it the truth? The statistics tell another story. This project explores and visualizes data from boardgamegeek.com, which includes board games published in 1950 or later and with at least 25 ratings. The goal is to observe and visualize interesting trends and patterns in the data, and to tell a cohesive and compelling story about the insights gained.
